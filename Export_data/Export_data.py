@@ -9,7 +9,7 @@ class Payload(object):
         for i in range(self.nlines):
             line = j.readline()
             data = json.loads(line)
-            fobiddencharacter = dict.fromkeys(map(ord, '/#\''), None)
+            fobiddencharacter = dict.fromkeys(map(ord, '/#\'&éÉàèÈ'), None)
             #print(data)
             #data.append(json.loads(line))
             #idstring ="{\'$oid\':\'" + data['_id']['$oid'] + "\'}"
@@ -31,7 +31,10 @@ class Payload(object):
                         else:
                             propertiesstring += "," + properties[i] + ":\'"+ data['properties'][properties[i]].translate(fobiddencharacter) + "\'"
                 else:
-                    propertiesstring += "," + properties[i] + ":null"  
+                    if i==0:
+                        propertiesstring +=  properties[i] + ":null"  
+                    else:
+                        propertiesstring += "," + properties[i] + ":null"  
 
             propertiesstring += "}"
             permitsstring = "{"
@@ -47,7 +50,10 @@ class Payload(object):
                         else:
                             permitsstring += "," + permitstype[i] + ":\'"+ data['permits'][permitstype[i]].translate(fobiddencharacter) + "\'"
                 else:
-                    permitsstring += "," + permitstype[i] + ":null"  
+                    if i==0:
+                        permitsstring += permitstype[i] + ":null"
+                    else:
+                        permitsstring += "," + permitstype[i] + ":null"  
 
             permitsstring += "}"
             o.write("INSERT INTO permit (id, geometry, properties, permits, housenumber, street, road, municipality, city, month, year, type) VALUES (")
@@ -57,8 +63,8 @@ class Payload(object):
             o.write(permitsstring + ",")
             o.write(str(data['housenumber'])+ ",")
             o.write("\'" + data['street']+ "\',")
-            o.write("\'" + data['road']+ "\',")
-            o.write("\'" + data['municipality']+ "\',")
+            o.write("\'" + data['road'].translate(fobiddencharacter)+ "\',")
+            o.write("\'" + data['municipality'].translate(fobiddencharacter)+ "\',")
             o.write("\'" + data['city']+ "\',")
             o.write("\'" + data['month']+ "\',")
             o.write(str(data['year'])+ ",")
