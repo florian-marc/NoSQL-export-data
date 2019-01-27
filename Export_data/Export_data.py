@@ -1,7 +1,8 @@
 import json
 
-class Payload(object):
+class All(object):
     def __init__(self, j, o):
+        j.seek(0)
         self.nlines = len(j.readlines())
         j.seek(0)
         #data =[]
@@ -72,6 +73,37 @@ class Payload(object):
             o.write(");\n")
             
 
+class Permits:
+    def __init__(self, j, o):
+        j.seek(0)
+        self.nlines = len(j.readlines())
+        j.seek(0)
+        for i in range(self.nlines):
+            line = j.readline()
+            data = json.loads(line)
+            fobiddencharacter = dict.fromkeys(map(ord, '/#\'&éÉàèÈ'), None)
+            permitsstring = ""
+            permitstype = ['suffix', 'APPL_TYPE', 'BLG_TYPE', 'filename', 'ISSUED_DATE', 'VALUE_unit', 'FT2', 'TOTAL_unit', 'CONTRACTOR', 'PC', 'location', 'PERMIT', 'direction', 'VALUE', 'PLAN', 'FT2_unit', 'WARD', 'DU', 'COST_unit', 'DESCRIPTION', "keyword"]
+            
+            for i in range(len(permitstype)):
+                if data['permits'][permitstype[i]] is not None:
+                    if not isinstance(data['permits'][permitstype[i]], str):
+                        permitsstring += "," + str(data['permits'][permitstype[i]])
+                    else:
+                        if i==0:
+                            permitsstring += "\'"+ data['permits'][permitstype[i]].translate(fobiddencharacter) + "\'"
+                        else:
+                            permitsstring += ",\'"+ data['permits'][permitstype[i]].translate(fobiddencharacter) + "\'"
+                else:
+                    if i==0:
+                        permitsstring += "null"  
+                    else:
+                        permitsstring += ",null"  
+
+            o.write("INSERT INTO Permits (suffix, APPL_TYPE, BLG_TYPE, filename, ISSUED_DATE, VALUE_unit, FT2, TOTAL_unit, CONTRACTOR, PC, location, PERMIT, direction, VALUE, PLAN, FT2_unit, WARD, DU, COST_unit, DESCRIPTION, keyword) VALUES (")
+            o.write(permitsstring)
+            o.write(");\n")
+
 j=open('data.json', 'r')
 o=open('export.cql', 'w')
 o.write("CREATE KEYSPACE IF NOT EXISTS ottawa WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 3};\n")
@@ -82,6 +114,9 @@ o.write("CREATE TYPE IF NOT EXISTS propertiestype (status text, ok boolean, prov
 o.write("CREATE TYPE IF NOT EXISTS permitstype (suffix text, APPL_TYPE text, BLG_TYPE text, filename text, ISSUED_DATE date, VALUE_unit int, FT2 int, TOTAL_unit int, CONTRACTOR text, PC text, location text, PERMIT int, direction text, VALUE int, PLAN text, FT2_unit int, WARD text, DU int, COST_unit float, DESCRIPTION text, keyword text);\n")
 #o.write("CREATE TABLE IF NOT EXISTS Permit (_id frozen idtype PRIMARY KEY,  geometry frozen geometrytype, properties frozen propertiestype, permits frozen permitstype, housenumber int, street text, road text, municipality text, city text, month text, year int, type text);\n")
 o.write("CREATE TABLE IF NOT EXISTS Permit (id text PRIMARY KEY, geometry frozen <geometrytype>, properties frozen <propertiestype>, permits frozen <permitstype>, housenumber int, street text, road text, municipality text, city text, month text, year int, type text);\n")
-p=Payload(j, o)
+p=All(j, o)
+o.write("CREATE TABLE IF NOT EXISTS Permits(suffix text, APPL_TYPE text, BLG_TYPE text, filename text, ISSUED_DATE date, VALUE_unit int, FT2 int, TOTAL_unit int, CONTRACTOR text, PC text, location text, PERMIT int, direction text, VALUE int, PLAN text, FT2_unit int, WARD text, DU int, COST_unit float, DESCRIPTION text, keyword text, PRIMARY KEY (filename, location, DESCRIPTION));\n")
+o.write("CREATE INDEX IF NOT EXISTS CONTRACTOR_INDEX ON Permits(CONTRACTOR);\n")
+p=Permits(j,o)
 j.close()
 o.close()
